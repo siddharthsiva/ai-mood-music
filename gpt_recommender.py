@@ -1,18 +1,18 @@
 # gpt_recommender.py
-import anthropic
+from anthropic import Anthropic, HUMAN_PROMPT, AI_PROMPT
 import streamlit as st
 
-client = anthropic.Anthropic(
-    api_key=st.secrets["ANTHROPIC_API_KEY"],
-)
+client = Anthropic(api_key=st.secrets["ANTHROPIC_API_KEY"])
 
 def get_songs_for_mood(mood):
-    prompt = f"Give me 5 Spotify song titles and artist names for a {mood} mood."
-    response = client.messages.create(
-        model="claude-3-sonnet-20240229",
+    prompt = f"{HUMAN_PROMPT} Suggest 5 Spotify song titles and artist names for someone who feels {mood.lower()}.{AI_PROMPT}"
+
+    response = client.completions.create(
+        model="claude-2.1",  # Use a supported model like claude-2.1 if 3 isn't working
+        prompt=prompt,
         max_tokens=300,
-        temperature=0.7,
-        messages=[{"role": "user", "content": prompt}]
+        temperature=0.7
     )
-    text = response.content[0].text.strip()
+
+    text = response.completion.strip()
     return [line.strip("-• ") for line in text.split("\n") if line.strip()]
