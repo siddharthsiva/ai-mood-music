@@ -1,15 +1,23 @@
-from anthropic import Anthropic
 import streamlit as st
+import anthropic
 
-client = Anthropic(api_key=st.secrets["ANTHROPIC_API_KEY"])
+client = anthropic.Anthropic(
+    api_key=st.secrets["ANTHROPIC_API_KEY"]
+)
 
 def get_songs_for_mood(mood):
-    response = client.messages.create(
+    message = client.messages.create(
         model="claude-3-sonnet-20240229",
-        max_tokens=500,
+        max_tokens=400,
         temperature=0.7,
+        system="You are a music recommendation expert.",
         messages=[
-            {"role": "user", "content": f"Suggest 5 Spotify song titles for a {mood} mood. Just list them."}
+            {
+                "role": "user",
+                "content": f"Suggest 5 Spotify song titles that fit a {mood} mood. Respond with just the song titles, no explanation."
+            }
         ]
     )
-    return [line.strip("•- ") for line in response.content.split("\n") if line.strip()]
+    # Clean up response
+    raw = message.content[0].text
+    return [line.strip("-• ") for line in raw.split("\n") if line.strip()]
