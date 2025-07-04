@@ -37,10 +37,6 @@ AI Mood Music is a full-featured, intelligent Spotify-connected web app that rec
 - Combine moods from multiple users into shared playlists.
 
 ---
-
-## 🧩 Project Structure
-
-
 ---
 
 ## 🛠️ Setup & Installation
