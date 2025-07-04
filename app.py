@@ -2,6 +2,7 @@ import streamlit as st
 from urllib.parse import urlparse, parse_qs
 from spotify_api import get_auth_url, get_token, get_user_profile, search_track, create_playlist
 from gpt_recommender import get_songs_for_mood
+from playlist_manager import get_user_playlists, get_playlist_tracks, add_tracks_to_playlist, remove_track_from_playlist, update_playlist_details
 
 st.set_page_config("AI Mood Music", layout="wide")
 
@@ -128,3 +129,40 @@ if tracks:
         headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
         requests.post(f"https://api.spotify.com/v1/playlists/{playlist_id}/tracks", headers=headers, json={"uris": track_uris})
         st.success(f"✅ Playlist '{mood}' saved to your Spotify!")
+
+# --- Playlist Management ---
+st.markdown("---")
+st.markdown("## 🎛️ Manage Your Playlists")
+
+user_playlists = get_user_playlists(token)
+playlist_options = {pl["name"]: pl["id"] for pl in user_playlists}
+
+if playlist_options:
+    selected_name = st.selectbox("🎵 Select one of your playlists", list(playlist_options.keys()))
+    selected_id = playlist_options[selected_name]
+
+    if st.checkbox("📂 Show tracks in playlist"):
+        st.markdown("### Songs in Playlist:")
+        tracks_in_pl = get_playlist_tracks(token, selected_id)
+        for item in tracks_in_pl:
+            track = item["track"]
+            st.markdown(f"• {track['name']} by {track['artists'][0]['name']}")
+            if st.button(f"🗑 Remove '{track['name']}'", key=track['id']):
+                remove_track_from_playlist(token, selected_id, track["uri"])
+                st.success(f"Removed {track['name']}")
+
+    if tracks and st.button("➕ Add AI Mood Songs to Playlist"):
+        uris = []
+        for title in tracks:
+            results = search_track(title, token)
+            if results:
+                uris.append("spotify:track:" + results[0]["url"].split("/")[-1])
+        add_tracks_to_playlist(token, selected_id, uris)
+        st.success(f"✅ Added {len(uris)} tracks to {selected_name}!")
+
+    with st.expander("✏️ Rename Playlist"):
+        new_name = st.text_input("New name", value=selected_name)
+        new_desc = st.text_area("New description", "")
+        if st.button("🔄 Update Playlist"):
+            update_playlist_details(token, selected_id, new_name, new_desc)
+            st.success("Playlist updated!")
