@@ -1,103 +1,61 @@
 # app.py
+
 import streamlit as st
-from urllib.parse import urlparse, parse_qs
-from spotify_api.auth import get_auth_url, get_token, get_user_profile
-from spotify_api.tracks import search_track
-from spotify_api.playlists import create_playlist, add_tracks_to_playlist, get_user_playlists, remove_track_from_playlist, rename_playlist
-from gpt.gpt_recommender import get_songs_for_mood
+from urllib.parse import parse_qs
+from components.spotify_auth import get_auth_url, get_token, get_user_profile
+from components.recommendations import get_song_recommendations
+from components.mood_tracker import log_mood, show_mood_history
+from components.favorites import add_favorite, show_favorites
+from components.genre_tagging import tag_genre
+from components.lyrics import display_lyrics
+from components.playlist_editor import handle_playlist_creation
+from components.collaboration import show_collab_info
 
 st.set_page_config("AI Mood Music", layout="wide")
+st.title("🎧 AI Mood Music")
 
-# --- Custom Styling ---
-st.markdown("""
-<style>
-html, body, .main, .block-container {
-    background-color: #000000 !important;
-    color: #ffffff !important;
-    font-family: 'Segoe UI', sans-serif;
-}
-.stButton > button {
-    background-color: #1DB954 !important;
-    color: white;
-    font-weight: bold;
-    border-radius: 30px;
-    font-size: 16px;
-    padding: 10px 25px;
-    border: none;
-}
-</style>
-""", unsafe_allow_html=True)
-
-st.image("https://cdn-icons-png.flaticon.com/512/0/375.png", width=64)
-st.title("AI Mood Music 🎧")
-
+# Mood input
 mood = st.selectbox("How are you feeling today?", [
-    "🎉 Happy", "😢 Sad", "🌙 Calm", "⚡ Energetic",
-    "❤️ Romantic", "🧠 Focused", "🎭 Melancholy", "💪 Confident"
+    "Happy", "Sad", "Calm", "Energetic", "Romantic", "Focused", "Melancholy", "Confident"
 ])
 
-tracks = []
-if st.button("🎧 Get Song Suggestions"):
-    with st.spinner("Getting AI suggestions..."):
-        gpt_songs = get_songs_for_mood(mood)
-    st.subheader(f"Suggested Songs for {mood}")
-    for s in gpt_songs:
-        st.markdown(f"- {s}")
-        tracks.append(s)
+# Get song suggestions
+if st.button("🔍 Get Song Recommendations"):
+    log_mood(mood)
+    st.session_state["tracks"] = get_song_recommendations(mood)
 
-# --- Spotify Login ---
-st.markdown("---")
+# Spotify login
 if "spotify_token" not in st.session_state:
-    query_params = st.query_params
-    if "code" in query_params:
-        code = query_params["code"]
-        token_info = get_token(code)
-        st.session_state["spotify_token"] = token_info["access_token"]
+    query = st.query_params
+    if "code" in query:
+        tokens = get_token(query["code"])
+        st.session_state["spotify_token"] = tokens["access_token"]
+        st.session_state["spotify_user"] = get_user_profile(tokens["access_token"])["id"]
         st.rerun()
     else:
-        st.markdown(f"<a href='{get_auth_url()}' style='color:#1DB954;'>🔓 Log in with Spotify</a>", unsafe_allow_html=True)
+        st.markdown(f"[🔐 Log in with Spotify]({get_auth_url()})")
         st.stop()
 
 token = st.session_state["spotify_token"]
-profile = get_user_profile(token)
-st.success(f"Logged in as: {profile['display_name']}")
+user_id = st.session_state["spotify_user"]
 
-# --- Playlist Management ---
-user_playlists = get_user_playlists(token, profile["id"])
-playlist_names = [pl["name"] for pl in user_playlists] + ["➕ Create New Playlist"]
-selected_playlist = st.selectbox("Choose or Create a Playlist", playlist_names)
+# Show suggestions
+if "tracks" in st.session_state:
+    st.subheader(f"🎵 Songs for your {mood} mood:")
+    for track in st.session_state["tracks"]:
+        genre = tag_genre(track)
+        st.markdown(f"- **{track}** (_{genre}_)")
+        display_lyrics(track)
+        if st.button(f"⭐ Favorite {track}", key=track):
+            add_favorite(track)
 
-if selected_playlist == "➕ Create New Playlist":
-    new_name = st.text_input("New Playlist Name")
-    if st.button("Create Playlist") and new_name:
-        playlist = create_playlist(token, profile["id"], new_name)
-        selected_playlist = playlist["name"]
-        st.success(f"Playlist '{new_name}' created!")
-else:
-    playlist_id = next((pl["id"] for pl in user_playlists if pl["name"] == selected_playlist), None)
-    if st.button("✏️ Rename Playlist"):
-        new_title = st.text_input("Enter new name")
-        if new_title:
-            rename_playlist(token, playlist_id, new_title)
-            st.success(f"Renamed to {new_title}")
+    handle_playlist_creation(st.session_state["tracks"], token, user_id)
 
-# --- Add Songs to Playlist ---
-if tracks and selected_playlist:
-    song_data = []
-    for title in tracks:
-        results = search_track(title, token)
-        if results:
-            song_data.append(results[0])
-    for track in song_data:
-        st.markdown(f"**{track['title']}** by *{track['artist']}*")
-        st.markdown(f"[🔗 Spotify Link]({track['url']})")
-        if track["preview"]:
-            st.audio(track["preview"])
-        if st.button(f"❌ Remove '{track['title']}' from Playlist"):
-            remove_track_from_playlist(token, playlist_id, track["url"])
-            st.rerun()
-
-    if st.button("💾 Add to Playlist"):
-        uris = ["spotify:track:" + track["url"].split("/")[-1] for track in song_data]
-        add_tracks_to_playlist(token, playlist_id, uris)
-        st.success("Tracks added!")
+# Sidebar info
+with st.sidebar:
+    st.header("📈 Mood History")
+    show_mood_history()
+    st.header("🌟 Your Favorites")
+    show_favorites()
+    st.header("🤝 Collaboration")
+    show_collab_info()
