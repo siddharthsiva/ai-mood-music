@@ -4,42 +4,41 @@ AI Mood Music is a full-featured, intelligent Spotify-connected web app that rec
 
 ---
 
-## 🚀 Features
+## Features
 
-### 🧠 AI-Powered Song Recommendations
+###  AI-Powered Song Recommendations
 - Choose your current mood (Happy, Sad, Calm, etc.)
 - Instantly receive 5 tailored song suggestions powered by GPT-4 or Claude.
 - Real-time previews, metadata, and AI-generated genre tags.
 
-### 🔐 Spotify Integration
+###  Spotify Integration
 - OAuth2 login with Spotify account.
 - Create new playlists or edit existing ones.
 - Add or remove tracks, update playlist names/descriptions.
 
-### 🕒 Mood History Tracking
+###  Mood History Tracking
 - Tracks daily moods and song choices.
 - Visualize your emotional trends over time.
 
-### ⭐ Favorite Songs
+###  Favorite Songs
 - Mark any recommended song as a favorite.
 - Browse and revisit your curated favorites anytime.
 
-### 🎼 Genre Tagging
+###  Genre Tagging
 - Each song is tagged with a suggested genre based on AI inference.
 - Helps categorize songs for smarter playlists and filtering.
 
-### 📖 Real-Time Lyrics
+###  Real-Time Lyrics
 - Fetches lyrics for recommended tracks.
 - Helpful for karaoke, language learning, or deeper song appreciation.
 
-### 🤝 Collaborative Playlist Mode
+###  Collaborative Playlist Mode
 - View and join public collaborative playlists.
 - Combine moods from multiple users into shared playlists.
 
 ---
----
 
-## 🛠️ Setup & Installation
+##  Setup & Installation
 
 ### 1. Clone the repo
 
